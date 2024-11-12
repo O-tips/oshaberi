@@ -29,6 +29,3 @@ async def upload_marker_and_model(marker:UploadFile = File(...), model:UploadFil
     
     #keyを返却
     return unique_key
-
-@app.get("/{key}")
-async def download_marker_and_model(key: uuid.UUID) -> 

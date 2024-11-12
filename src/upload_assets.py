@@ -1,11 +1,16 @@
+import os
+from dotenv import load_dotenv
 import boto3
 from botocore.exceptions import NoCredentialsError
 
-# DigitalOcean Spacesの情報
-endpoint_url = "https://custom-ar-assets.nyc3.digitaloceanspaces.com"
-access_key = "YOUR_ACCESS_KEY"
-secret_key = "YOUR_SECRET_KEY"
-bucket_name = "YOUR_BUCKET_NAME"
+# .envファイルの読み込み
+load_dotenv()
+
+# 環境変数の取得
+endpoint_url = os.getenv("ENDPOINT_URL")
+access_key = os.getenv("ACCESS_KEY")
+secret_key = os.getenv("SECRET_KEY")
+bucket_name = os.getenv("BUCKET_NAME")
 
 # クライアント設定
 session = boto3.session.Session()
@@ -15,6 +20,7 @@ client = session.client('s3',
                         aws_access_key_id=access_key,
                         aws_secret_access_key=secret_key)
 
+# アップロード関数の例
 def upload_file(file_name, object_name=None):
     try:
         client.upload_file(file_name, bucket_name, object_name or file_name)
@@ -23,4 +29,4 @@ def upload_file(file_name, object_name=None):
         print("Credentials not available.")
 
 # アップロード例
-upload_file("local_file.txt", "remote_file.txt")
+upload_file("assets/local_file.txt", "test/remote_file.txt")

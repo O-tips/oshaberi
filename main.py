@@ -6,6 +6,10 @@ import src.upload_assets as ua
 
 app = FastAPI()
 
+@app.get("/")
+async def read_root():
+    return {"message": "Hello, FastAPI!"}
+
 @app.post("/upload")
 async def upload_marker_and_model(marker:UploadFile = File(...), model:UploadFile = File(...)) -> uuid.UUID:
     # ファイルの拡張子をチェック
@@ -25,3 +29,6 @@ async def upload_marker_and_model(marker:UploadFile = File(...), model:UploadFil
     
     #keyを返却
     return unique_key
+
+@app.get("/{key}")
+async def download_marker_and_model(key: uuid.UUID) -> 

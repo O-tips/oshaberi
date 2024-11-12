@@ -4,6 +4,8 @@
 ```
 docker build -t oshaberi .
 docker run -d -p 8000:8000 oshaberi
+
+docker run -it --rm --name oshaberi -v "$(pwd):/app" oshaberi /bin/bash
 ```
 
 ## TODO

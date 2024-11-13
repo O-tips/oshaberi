@@ -3,6 +3,7 @@ import uuid
 import io
 import src.download_assets as da
 import src.upload_assets as ua
+from fastapi.responses import FileResponse, StreamingResponse
 
 app = FastAPI()
 
@@ -25,7 +26,23 @@ async def upload_marker_and_model(marker:UploadFile = File(...), model:UploadFil
     unique_key = uuid.uuid4()
     #dbにアップロード
     for content, path in [(marker_file, "marker.mind"),(model_file, "model.glb")]:
-        await ua.upload_fileobj(content, f"{unique_key}/{path}")
+        await ua.upload_fileobj(content, f"{str(unique_key)}/{path}")
     
     #keyを返却
     return unique_key
+
+@app.get("/marker/{key}")
+async def download_marker(key: str):
+    marker_mind_data = await da.download_fileobj(key, "marker")
+    # ダウンロードに失敗した場合
+    if marker_mind_data is None:
+        raise HTTPException(status_code=404, detail="Marker not found or download error")
+    return StreamingResponse(marker_mind_data, media_type="application/octet-stream")
+
+@app.get("/model/{key}")
+async def download_marker(key: str):
+    model_glb_data = await da.download_fileobj(key, "model")
+    # ダウンロードに失敗した場合
+    if model_glb_data is None:
+        raise HTTPException(status_code=404, detail="Model not found or download error")
+    return StreamingResponse(model_glb_data, media_type="application/octet-stream")

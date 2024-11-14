@@ -1,11 +1,21 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import uuid
 import io
 import src.download_assets as da
 import src.upload_assets as ua
 from fastapi.responses import FileResponse, StreamingResponse
 
+
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 許可するオリジン（*は全てのオリジンを許可）
+    allow_credentials=True,
+    allow_methods=["*"],  # 許可するHTTPメソッド
+    allow_headers=["*"],  # 許可するヘッダー
+)
 
 @app.get("/")
 async def read_root():

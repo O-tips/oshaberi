@@ -5,7 +5,7 @@ import io
 import src.download_assets as da
 import src.upload_assets as ua
 from fastapi.responses import FileResponse, StreamingResponse
-
+from typing import List
 
 app = FastAPI()
 
@@ -39,6 +39,32 @@ async def upload_marker_and_model(marker:UploadFile = File(...), model:UploadFil
         await ua.upload_fileobj(content, f"{str(unique_key)}/{path}")
     
     #keyを返却
+    return unique_key
+
+@app.post("/upload-list")
+async def upload_marker_and_models(marker: UploadFile = File(...), models: List[UploadFile] = File(...)) -> uuid.UUID:
+    # ファイルの拡張子をチェック
+    if not marker.filename.endswith(".mind"):
+        raise HTTPException(status_code=400, detail="Marker file must have .mind extension")
+    
+    # メモリから直接S3にアップロード
+    marker_content = await marker.read()
+    marker_file = io.BytesIO(marker_content)  # バイト列からファイルオブジェクトに変換
+    
+    # 一意なkeyを発行
+    unique_key = uuid.uuid4()
+
+    # markerファイルをアップロード
+    await ua.upload_fileobj(marker_file, f"{str(unique_key)}/marker.mind")
+
+    # 各modelファイルをアップロード
+    for i, model in enumerate(models):
+        model_content = await model.read()
+        model_file = io.BytesIO(model_content)
+        # `model_i.glb`という形式でファイルを保存
+        await ua.upload_fileobj(model_file, f"{str(unique_key)}/model_{i}.glb")
+
+    # 一意なkeyを返却
     return unique_key
 
 @app.get("/marker/{key}")

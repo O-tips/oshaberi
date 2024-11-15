@@ -56,7 +56,7 @@ async def upload_marker_and_model(marker: UploadFile = File(...), model: UploadF
         try:
             await ua.upload_fileobj(content, f"{str(unique_key)}/{path}")
             subprocess.run(
-                ["s3cmd", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/{path}", "--acl-public"],
+                ["s3cmd", "--debug", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/{path}", "--acl-public"],
                 check=True,
                 env=os.environ  # 設定した環境変数を使用
             )
@@ -81,7 +81,7 @@ async def upload_marker_and_models(marker: UploadFile = File(...), models: List[
     # markerファイルをアップロード
     await ua.upload_fileobj(marker_file, f"{str(unique_key)}/marker.mind")
     subprocess.run(
-        ["s3cmd", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/marker.mind", "--acl-public"],
+        ["s3cmd", "--debug", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/marker.mind", "--acl-public"],
         check=True,
         env=os.environ  # 設定した環境変数を使用
     )

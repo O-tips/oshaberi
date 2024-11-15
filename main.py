@@ -52,38 +52,58 @@ async def run_s3cmd(command: List[str]):
     return stdout.decode()
 
 @app.post("/upload")
-async def upload_marker_and_model(marker: UploadFile = File(...), model: UploadFile = File(...)) -> uuid.UUID:
+async def upload_marker_and_model(marker:UploadFile = File(...), model:UploadFile = File(...)) -> uuid.UUID:
     # ファイルの拡張子をチェック
     if not marker.filename.endswith(".mind"):
         raise HTTPException(status_code=400, detail="Marker file must have .mind extension")
-    
     # メモリから直接S3にアップロード
     marker_content = await marker.read()
     model_content = await model.read()
+    # marker_contentとmodel_contentをBytesIOに変換
     marker_file = io.BytesIO(marker_content)  # バイト列からファイルオブジェクトに変換
     model_file = io.BytesIO(model_content)    # バイト列からファイルオブジェクトに変換
-    
-    # 一意なkeyを発行
+    #一意なkeyを発行
     unique_key = uuid.uuid4()
+    #dbにアップロード
+    for content, path in [(marker_file, "marker.mind"),(model_file, "model.glb")]:
+        await ua.upload_fileobj(content, f"{str(unique_key)}/{path}")
     
-    # DBにアップロード
-    for content, path in [(marker_file, "marker.mind"), (model_file, "model.glb")]:
-        try:
-            # ファイルアップロード処理
-            await ua.upload_fileobj(content, f"{str(unique_key)}/{path}")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
-
-    for content, path in [(marker_file, "marker.mind"), (model_file, "model.glb")]:
-        try:
-            # アップロード成功後にs3cmdでsetaclを実行
-            await run_s3cmd([
-                "s3cmd", "--debug", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/{path}", "--acl-public"
-            ])
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
-
+    #keyを返却
     return unique_key
+
+# @app.post("/upload")
+# async def upload_marker_and_model(marker: UploadFile = File(...), model: UploadFile = File(...)) -> uuid.UUID:
+#     # ファイルの拡張子をチェック
+#     if not marker.filename.endswith(".mind"):
+#         raise HTTPException(status_code=400, detail="Marker file must have .mind extension")
+    
+#     # メモリから直接S3にアップロード
+#     marker_content = await marker.read()
+#     model_content = await model.read()
+#     marker_file = io.BytesIO(marker_content)  # バイト列からファイルオブジェクトに変換
+#     model_file = io.BytesIO(model_content)    # バイト列からファイルオブジェクトに変換
+    
+#     # 一意なkeyを発行
+#     unique_key = uuid.uuid4()
+    
+#     # DBにアップロード
+#     for content, path in [(marker_file, "marker.mind"), (model_file, "model.glb")]:
+#         try:
+#             # ファイルアップロード処理
+#             await ua.upload_fileobj(content, f"{str(unique_key)}/{path}")
+#         except Exception as e:
+#             raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
+
+#     for content, path in [(marker_file, "marker.mind"), (model_file, "model.glb")]:
+#         try:
+#             # アップロード成功後にs3cmdでsetaclを実行
+#             await run_s3cmd([
+#                 "s3cmd", "--debug", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/{path}", "--acl-public"
+#             ])
+#         except Exception as e:
+#             raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
+
+#     return unique_key
 
 @app.post("/upload-list")
 async def upload_marker_and_models(marker: UploadFile = File(...), models: List[UploadFile] = File(...)) -> uuid.UUID:

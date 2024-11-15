@@ -39,9 +39,15 @@ async def upload_marker_and_model(marker:UploadFile = File(...), model:UploadFil
     
     # DBにアップロード
     for content, path in [(marker_file, "marker.mind"), (model_file, "model.glb")]:
-        await ua.upload_fileobj(content, f"{str(unique_key)}/{path}")
-        # アップロード後にACLを設定
-        subprocess.run(["s3cmd", "setacl", f"s3://spacename/{str(unique_key)}/{path}", "--acl-public"])
+        try:
+            await ua.upload_fileobj(content, f"{str(unique_key)}/{path}")
+            subprocess.run(
+                ["s3cmd", "setacl", f"s3://spacename/{str(unique_key)}/{path}", "--acl-public"],
+                check=True
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
+
     
     return unique_key
 

@@ -68,7 +68,8 @@ async def upload_marker_and_model(marker:UploadFile = File(...), model:UploadFil
     for content, path in [(marker_file, "marker.mind"),(model_file, "model.glb")]:
         await ua.upload_fileobj(content, f"{str(unique_key)}/{path}")
         await run_s3cmd([
-            "s3cmd", "--debug", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/{path}", "--acl-public"
+            # "s3cmd", "--debug", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/{path}", "--acl-public"
+            "s3cmd", "--debug", "setacl", f"s3://custom-ar-assets/01d00b8b-0108-4af1-847c-558fc0aabf49/{path}", "--acl-public"
         ])
     
     #keyを返却

@@ -22,8 +22,8 @@ app.add_middleware(
 # 環境変数の取得
 access_key = os.getenv('ACCESS_KEY')
 secret_key = os.getenv('SECRET_KEY')
-bucket_name = os.getenv('ENDPOINT_URL')
-endpoint_url = os.getenv('S3_ENDPOINT_URL')
+bucket_name = os.getenv('BUCKET_NAME')
+endpoint_url = os.getenv('ENDPOINT_URL')
 
 @app.get("/")
 async def read_root():

@@ -42,7 +42,7 @@ async def upload_marker_and_model(marker:UploadFile = File(...), model:UploadFil
         try:
             await ua.upload_fileobj(content, f"{str(unique_key)}/{path}")
             subprocess.run(
-                ["s3cmd", "setacl", f"s3://spacename/{str(unique_key)}/{path}", "--acl-public"],
+                ["s3cmd", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/{path}", "--acl-public"],
                 check=True
             )
         except Exception as e:
@@ -66,14 +66,14 @@ async def upload_marker_and_models(marker: UploadFile = File(...), models: List[
 
     # markerファイルをアップロード
     await ua.upload_fileobj(marker_file, f"{str(unique_key)}/marker.mind")
-    subprocess.run(["s3cmd", "setacl", f"s3://spacename/{str(unique_key)}/marker.mind", "--acl-public"])
+    subprocess.run(["s3cmd", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/marker.mind", "--acl-public"])
 
     # 各modelファイルをアップロード
     for i, model in enumerate(models):
         model_content = await model.read()
         model_file = io.BytesIO(model_content)
         await ua.upload_fileobj(model_file, f"{str(unique_key)}/model_{i}.glb")
-        subprocess.run(["s3cmd", "setacl", f"s3://spacename/{str(unique_key)}/model_{i}.glb", "--acl-public"])
+        subprocess.run(["s3cmd", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/model_{i}.glb", "--acl-public"])
 
     return unique_key
 

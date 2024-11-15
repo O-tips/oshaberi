@@ -48,6 +48,10 @@ async def run_s3cmd(command: List[str]):
     )
     stdout, stderr = await process.communicate()
     if process.returncode != 0:
+        error_message = stderr.decode()
+        print(f"s3cmd failed with error: {error_message}")
+        raise HTTPException(status_code=500, detail=f"s3cmd failed: {error_message}")
+    if process.returncode != 0:
         raise HTTPException(status_code=500, detail=f"s3cmd failed: {stderr.decode()}")
     return stdout.decode()
 

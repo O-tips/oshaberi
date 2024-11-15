@@ -1,11 +1,27 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uuid
-import io
+import io, os
 import src.download_assets as da
 import src.upload_assets as ua
 from fastapi.responses import FileResponse, StreamingResponse
 from typing import List
+from dotenv import load_dotenv
+import aioboto3
+import asyncio
+from botocore.exceptions import ClientError
+from io import BytesIO
+import zipfile
+
+# .envファイルの読み込み
+load_dotenv()
+
+# 環境変数の取得
+endpoint_url = os.getenv("ENDPOINT_URL")
+access_key = os.getenv("ACCESS_KEY")
+secret_key = os.getenv("SECRET_KEY")
+bucket_name = os.getenv("BUCKET_NAME")
+endpoint_url_for_download_multi_files = os.getenv("ENDPOINT_URL_FOR_DOWNLOAD_MULTI_FILES")
 
 app = FastAPI()
 
@@ -82,3 +98,36 @@ async def download_marker(key: str):
     if model_glb_data is None:
         raise HTTPException(status_code=404, detail="Model not found or download error")
     return StreamingResponse(model_glb_data, media_type="application/octet-stream")
+
+@app.get("/model_list/{key}")
+async def download_models(key: str):
+    zip_buffer = BytesIO()
+    async with aioboto3.session.Session().client('s3',
+                          region_name='nyc3',
+                          endpoint_url=endpoint_url_for_download_multi_files,
+                          aws_access_key_id=access_key,
+                          aws_secret_access_key=secret_key) as client:
+        try:
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                result = await client.list_objects_v2(Bucket=bucket_name, Prefix=f"custom-ar-assets/{key}/")
+                if 'Contents' in result:
+                    for obj in result['Contents']:
+                        model_glb_data = io.BytesIO()
+                        # 対象の拡張子のファイルのみフィルタリング
+                        if obj['Key'].endswith(".glb" or ".gltf" or ".obj" or ".fbx"):
+                            print(obj['Key'])
+                            # ファイルをダウンロード
+                            await client.download_fileobj(bucket_name, obj['Key'], model_glb_data)
+                            zip_file.writestr(obj['Key'], model_glb_data.read())
+                            model_glb_data.seek(0)
+                else:
+                    print("ディレクトリ内にファイルはありません")
+        except ClientError as e:
+            # 404エラーが返された場合は、オブジェクトが存在しないことを示す
+            if e.response['Error']['Code'] == '404':
+                print(f"オブジェクト '{key}' は存在しません")
+            else:
+                # 他のエラーが発生した場合
+                print(f"エラー: {e}")
+    zip_buffer.seek(0)
+    return StreamingResponse(zip_buffer, media_type="application/zip", headers={"Content-Disposition": "attachment; filename=models.zip"})

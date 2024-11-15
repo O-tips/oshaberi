@@ -76,9 +76,20 @@ async def download_marker(key: str):
     return StreamingResponse(marker_mind_data, media_type="application/octet-stream")
 
 @app.get("/model/{key}")
-async def download_marker(key: str):
+async def download_model(key: str):
     model_glb_data = await da.download_fileobj(key, "model")
     # ダウンロードに失敗した場合
     if model_glb_data is None:
         raise HTTPException(status_code=404, detail="Model not found or download error")
-    return StreamingResponse(model_glb_data, media_type="application/octet-stream")
+    
+    # ファイル名を取得（例：key.split('/')[-1] で最後の部分を取得）
+    file_name = key.split('/')[-1]
+    
+    if file_name.endswith('.glb'):
+        content_type = "model/gltf-binary"
+    elif file_name.endswith('.gltf'):
+        content_type = "model/gltf+json"
+    else:
+        content_type = "application/octet-stream"  # デフォルトのContent-Type
+
+    return StreamingResponse(model_glb_data, media_type=content_type)

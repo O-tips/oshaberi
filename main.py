@@ -1,4 +1,5 @@
 import subprocess
+import asyncio
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uuid
@@ -55,7 +56,8 @@ async def upload_marker_and_model(marker: UploadFile = File(...), model: UploadF
     for content, path in [(marker_file, "marker.mind"), (model_file, "model.glb")]:
         try:
             await ua.upload_fileobj(content, f"{str(unique_key)}/{path}")
-            subprocess.run(
+            # subprocessを非同期で実行
+            await asyncio.to_thread(subprocess.run, 
                 ["s3cmd", "--debug", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/{path}", "--acl-public"],
                 check=True,
                 env=os.environ  # 設定した環境変数を使用

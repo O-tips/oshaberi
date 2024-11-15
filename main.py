@@ -34,9 +34,11 @@ async def upload_marker_and_model(marker:UploadFile = File(...), model:UploadFil
     model_file = io.BytesIO(model_content)    # バイト列からファイルオブジェクトに変換
     #一意なkeyを発行
     unique_key = uuid.uuid4()
+    # モデルファイルの拡張子を保持
+    model_extension = os.path.splitext(model.filename)[1]
     #dbにアップロード
-    for content, path in [(marker_file, "marker.mind"),(model_file, "model.glb")]:
-        await ua.upload_fileobj(content, f"{str(unique_key)}/{path}")
+    await ua.upload_fileobj(marker_file, f"{str(unique_key)}/marker.mind")
+    await ua.upload_fileobj(model_file, f"{str(unique_key)}/model{model_extension}")
     
     #keyを返却
     return unique_key
@@ -61,8 +63,8 @@ async def upload_marker_and_models(marker: UploadFile = File(...), models: List[
     for i, model in enumerate(models):
         model_content = await model.read()
         model_file = io.BytesIO(model_content)
-        # `model_i.glb`という形式でファイルを保存
-        await ua.upload_fileobj(model_file, f"{str(unique_key)}/model_{i}.glb")
+        model_extension = os.path.splitext(model.filename)[1]
+        await ua.upload_fileobj(model_file, f"{str(unique_key)}/model_{i}{model_extension}")
 
     # 一意なkeyを返却
     return unique_key

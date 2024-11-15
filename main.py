@@ -71,7 +71,11 @@ async def upload_marker_and_model(marker: UploadFile = File(...), model: UploadF
         try:
             # ファイルアップロード処理
             await ua.upload_fileobj(content, f"{str(unique_key)}/{path}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
 
+    for content, path in [(marker_file, "marker.mind"), (model_file, "model.glb")]:
+        try:
             # アップロード成功後にs3cmdでsetaclを実行
             await run_s3cmd([
                 "s3cmd", "--debug", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/{path}", "--acl-public"

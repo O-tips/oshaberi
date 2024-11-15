@@ -32,11 +32,19 @@ async def read_root():
 
 async def run_s3cmd(command: List[str]):
     """非同期でs3cmdを実行"""
+    # 環境変数を辞書として設定
+    env = os.environ.copy()
+    env['AWS_ACCESS_KEY_ID'] = access_key
+    env['AWS_SECRET_ACCESS_KEY'] = secret_key
+    env['AWS_DEFAULT_REGION'] = 'nyc3'  # 適切な地域に設定
+    env['S3_BUCKET_NAME'] = bucket_name
+    env['S3_ENDPOINT_URL'] = endpoint_url
+
     process = await asyncio.create_subprocess_exec(
         *command,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-        env=os.environ
+        env=env  # 環境変数を辞書として渡す
     )
     stdout, stderr = await process.communicate()
     if process.returncode != 0:
@@ -58,13 +66,6 @@ async def upload_marker_and_model(marker: UploadFile = File(...), model: UploadF
     # 一意なkeyを発行
     unique_key = uuid.uuid4()
     
-    # 環境変数を設定（s3cmdが使う情報）
-    os.environ['AWS_ACCESS_KEY_ID'] = access_key
-    os.environ['AWS_SECRET_ACCESS_KEY'] = secret_key
-    os.environ['AWS_DEFAULT_REGION'] = 'nyc3'  # 例：地域（適切なものに設定）
-    os.environ['S3_BUCKET_NAME'] = bucket_name
-    os.environ['S3_ENDPOINT_URL'] = endpoint_url
-
     # DBにアップロード
     for content, path in [(marker_file, "marker.mind"), (model_file, "model.glb")]:
         try:

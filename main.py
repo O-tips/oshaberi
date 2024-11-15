@@ -20,9 +20,9 @@ app.add_middleware(
 )
 
 # 環境変数の取得
-access_key = os.getenv('S3_ACCESS_KEY_ID')
-secret_key = os.getenv('S3_SECRET_ACCESS_KEY')
-bucket_name = os.getenv('S3_BUCKET_NAME')
+access_key = os.getenv('ACCESS_KEY_ID')
+secret_key = os.getenv('SECRET_KEY')
+bucket_name = os.getenv('ENDPOINT_URL')
 endpoint_url = os.getenv('S3_ENDPOINT_URL')
 
 @app.get("/")

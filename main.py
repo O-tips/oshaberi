@@ -30,6 +30,19 @@ endpoint_url = os.getenv('ENDPOINT_URL')
 async def read_root():
     return {"message": "Hello, FastAPI!"}
 
+async def run_s3cmd(command: List[str]):
+    """非同期でs3cmdを実行"""
+    process = await asyncio.create_subprocess_exec(
+        *command,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        env=os.environ
+    )
+    stdout, stderr = await process.communicate()
+    if process.returncode != 0:
+        raise HTTPException(status_code=500, detail=f"s3cmd failed: {stderr.decode()}")
+    return stdout.decode()
+
 @app.post("/upload")
 async def upload_marker_and_model(marker: UploadFile = File(...), model: UploadFile = File(...)) -> uuid.UUID:
     # ファイルの拡張子をチェック
@@ -55,13 +68,13 @@ async def upload_marker_and_model(marker: UploadFile = File(...), model: UploadF
     # DBにアップロード
     for content, path in [(marker_file, "marker.mind"), (model_file, "model.glb")]:
         try:
+            # ファイルアップロード処理
             await ua.upload_fileobj(content, f"{str(unique_key)}/{path}")
-            # subprocessを非同期で実行
-            await asyncio.to_thread(subprocess.run, 
-                ["s3cmd", "--debug", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/{path}", "--acl-public"],
-                check=True,
-                env=os.environ  # 設定した環境変数を使用
-            )
+
+            # アップロード成功後にs3cmdでsetaclを実行
+            await run_s3cmd([
+                "s3cmd", "--debug", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/{path}", "--acl-public"
+            ])
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
 
@@ -82,22 +95,18 @@ async def upload_marker_and_models(marker: UploadFile = File(...), models: List[
 
     # markerファイルをアップロード
     await ua.upload_fileobj(marker_file, f"{str(unique_key)}/marker.mind")
-    subprocess.run(
-        ["s3cmd", "--debug", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/marker.mind", "--acl-public"],
-        check=True,
-        env=os.environ  # 設定した環境変数を使用
-    )
+    await run_s3cmd([
+        "s3cmd", "--debug", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/marker.mind", "--acl-public"
+    ])
 
     # 各modelファイルをアップロード
     for i, model in enumerate(models):
         model_content = await model.read()
         model_file = io.BytesIO(model_content)
         await ua.upload_fileobj(model_file, f"{str(unique_key)}/model_{i}.glb")
-        subprocess.run(
-            ["s3cmd", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/model_{i}.glb", "--acl-public"],
-            check=True,
-            env=os.environ  # 設定した環境変数を使用
-        )
+        await run_s3cmd([
+            "s3cmd", "setacl", f"s3://custom-ar-assets/{str(unique_key)}/model_{i}.glb", "--acl-public"
+        ])
 
     return unique_key
 
@@ -109,7 +118,7 @@ async def download_marker(key: str):
     return StreamingResponse(marker_mind_data, media_type="application/octet-stream")
 
 @app.get("/model/{key}")
-async def download_marker(key: str):
+async def download_model(key: str):
     model_glb_data = await da.download_fileobj(key, "model")
     if model_glb_data is None:
         raise HTTPException(status_code=404, detail="Model not found or download error")

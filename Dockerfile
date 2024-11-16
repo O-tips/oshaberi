@@ -11,6 +11,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # FastAPIアプリケーションコードをコピー
 COPY . .
 
+# .s3cfgをコンテナにコピー
+COPY .s3cfg .  
+
 # ポートを公開
 EXPOSE 8000
 
